@@ -2,7 +2,12 @@ from openpyxl import load_workbook
 import numpy as np
 import matplotlib.pyplot as plt
 import pylab
-workbook = "C:\\Users\\user\\OneDrive - University of Edinburgh\\excelSheet\\age_at_death.xlsx"
+from scipy import stats
+
+
+workbooks = ["selectAll", "selectAllNegativeInteresting"]
+
+workbook = "C:\\Users\\user\\OneDrive - University of Edinburgh\\excelSheet\\boxplotexcel\\age_at_death.xlsx"
 
 class Sheet(object):
     def __init__(self, excel_workbook_name, sheet_name):
@@ -20,6 +25,7 @@ class Sheet(object):
         self.sheet = self.wb[self.sheet_name]
         
 class Column(Sheet):
+    """for generating box plots from data in columns"""
     def __init__(self, excel_workbook_name, sheet_name):
         Sheet.__init__(self, excel_workbook_name, sheet_name)
         self.column_label = ""
@@ -29,7 +35,7 @@ class Column(Sheet):
         try:
             val = self.sheet.cell(row, column).value
         except:   
-            raise ColumnLabelError("A problem occurred setting the row label.")
+            raise ColumnLabelError("A problem occurred setting the column label.")
         self.column_label = val     
     def get_column_label(self):
         return self.column_label
@@ -40,9 +46,8 @@ class Column(Sheet):
                 val = self.sheet.cell(row, column).value
             except AttributeError:   
                 print("A problem occurred reading data from a row")            
-            if val == None:
-                break
-            self.column_list = self.column_list + [val]    
+            if not val == None:
+                self.column_list = self.column_list + [float(val)]    
     def get_column_list(self):
         return self.column_list
     def set_mult_column_lists(self):
@@ -57,27 +62,63 @@ class Column(Sheet):
     def get_mult_column_lists(self):
         return self.mult_column_lists
     
-    def display_box_plot(self, variable):
-        fig, box_plot = plt.subplots() #remember plt = matplotlib.pyplot
-        box_plot.set_title(variable)
-        box_plot.boxplot(self.column_list)
-        pylab.show()
+        #remember plt = matplotlib.pyplot
 
-    def display_mult_box_plots(self, variable):
-        fig, box_plot = plt.subplots() #remember plt = matplotlib.pyplot
-        ##box_plot.set_axisbelow(True)
-        box_plot.set_title(variable)
-        box_plot.set_ylabel("Age")
-        box_plot.boxplot(self.mult_column_lists)
-        box_plot.set_xticklabels(["Age","Age minus 5"], rotation=45, fontsize=8)
-        pylab.show()
+def display_box_plot(variable, column_list):
+    fig, box_plot = plt.subplots() 
+    box_plot.set_title(variable)
+    box_plot.boxplot(column_list)
+    pylab.show()
 
-c = Column(workbook,"Sheet1")
-c.set_mult_column_lists()
+def display_mult_box_plots(variable, mult_column_lists):
+    fig, box_plot = plt.subplots()
+    box_plot.set_title(variable)
+    box_plot.set_ylabel(variable)
+    box_plot.boxplot(mult_column_lists)
+    box_plot.set_xticklabels(workbooks, rotation=45, fontsize=8)
+    pylab.show()
+
+
+def inter_sheet_column_box_plot(column):
+    columns =[]
+    label = ""
+    for workbook in workbooks:
+        c = Column(workbook + ".xlsx","selectAll") 
+        if label is "":
+            c.set_column_label(1,column)
+            label = c.get_column_label()
+        c.set_column_list(2,column)
+        columns.append(c.get_column_list())
+    display_mult_box_plots(label, columns)
+
+#for column in range(1,7):
+   # try:
+   #     inter_sheet_column_box_plot(column)
+   # except:
+   #     print("Could not plot box plots for column "+ str(column))
+
+def inter_sheet_column_ttest(column):
+    columns =[]
+    label = ""
+    for workbook in workbooks:
+        c = Column(workbook + ".xlsx","selectAll") 
+        if label is "":
+            c.set_column_label(1,column)
+            label = c.get_column_label()
+        c.set_column_list(2,column)
+        columns.append(c.get_column_list())
+    return stats.ttest_ind(columns[0],columns[1], equal_var = False), label
+
+for column in range(1,7):
+    try:
+        print(inter_sheet_column_ttest(column))
+    except:
+        print("Could not perform tttest for "+ str(column))
+
 ##print(c.get_mult_column_lists())
 ##c.set_column_list(2,1)
 ##print(c.get_column_list())
-c.display_mult_box_plots("AgeAtDeath")
+##c.display_mult_box_plots("AgeAtDeath")
 ##c.display_box_plot("AgeAtDeath")
 
     
